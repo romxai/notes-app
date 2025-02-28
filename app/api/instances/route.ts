@@ -39,9 +39,31 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
     const data = await request.json();
+
+    // Initialize content based on instance type
+    let content = {};
+    if (data.type === "chat") {
+      content = {
+        lastMessage: null,
+        messageCount: 0,
+      };
+    } else if (data.type === "quiz") {
+      content = {
+        questions: [],
+        score: null,
+      };
+    } else if (data.type === "flashcard") {
+      content = {
+        cards: [],
+        lastReviewed: null,
+      };
+    }
+
     const instance = await Instance.create({
       ...data,
       userId: payload.userId,
+      content,
+      messages: [],
     });
     return NextResponse.json(instance);
   } catch (error) {

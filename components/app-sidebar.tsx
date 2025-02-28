@@ -65,6 +65,12 @@ type UserInfo = {
   email: string;
 };
 
+interface Folder {
+  _id: string;
+  name: string;
+  description: string;
+}
+
 const navItems = [
   {
     title: "Upload",
@@ -87,6 +93,34 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
   const [newInstanceName, setNewInstanceName] = useState("");
   const [selectedType, setSelectedType] = useState<string>("");
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [folder, setFolder] = useState<Folder | null>(null);
+
+  useEffect(() => {
+    if (folderId) {
+      fetchInstances();
+      fetchFolder();
+    }
+  }, [folderId]);
+
+  const fetchFolder = async () => {
+    try {
+      console.log("Fetching folder details for:", folderId);
+      const response = await fetch(`/api/folders/${folderId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch folder");
+      }
+      const data = await response.json();
+      console.log("Folder data:", data);
+      setFolder(data);
+    } catch (error) {
+      console.error("Error fetching folder:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch folder details",
+        variant: "destructive",
+      });
+    }
+  };
 
   const instanceGroups: InstanceGroup[] = [
     {
@@ -125,12 +159,6 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
       });
     }
   };
-
-  useEffect(() => {
-    if (folderId) {
-      fetchInstances();
-    }
-  }, [folderId]);
 
   // Create new instance
   const handleCreateInstance = async () => {
@@ -227,12 +255,22 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
             <BookText className="h-4 w-4 text-primary-foreground" />
           </div>
-          <div className="font-semibold">Study Notes</div>
+          <div className="font-semibold">
+            <h2 className="text-sm font-semibold">STUDY +</h2>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {" "}
+            {folder ? (
+              <h2 className="text-sm font-semibold">{folder.name}</h2>
+            ) : (
+              <div className="h-5 w-24 animate-pulse rounded bg-muted"></div>
+            )}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>

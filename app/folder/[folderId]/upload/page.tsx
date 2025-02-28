@@ -1,91 +1,178 @@
-"use client"
+"use client";
 
-import type React from "react"
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { Upload, File as FileIcon, X, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useToast } from "@/hooks/use-toast";
 
-import { useState } from "react"
-import { Upload, File, X, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+interface FileUpload {
+  file: File;
+  progress: number;
+  status: "uploading" | "processing" | "complete" | "error";
+}
+
+interface UploadedFile {
+  _id: string;
+  displayName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+}
+
+interface Folder {
+  _id: string;
+  name: string;
+  description: string;
+}
 
 export default function UploadPage() {
-  const [isDragging, setIsDragging] = useState(false)
-  const [files, setFiles] = useState<File[]>([])
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
+  const { folderId } = useParams();
+  const { toast } = useToast();
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploads, setUploads] = useState<Record<string, FileUpload>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [folder, setFolder] = useState<Folder | null>(null);
+
+  useEffect(() => {
+    fetchFolder();
+    fetchFiles();
+  }, [folderId]);
+
+  const fetchFolder = async () => {
+    try {
+      console.log("Fetching folder details for:", folderId);
+      const response = await fetch(`/api/folders/${folderId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch folder");
+      }
+      const data = await response.json();
+      console.log("Folder data:", data);
+      setFolder(data);
+    } catch (error) {
+      console.error("Error fetching folder:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch folder details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchFiles = async () => {
+    try {
+      const response = await fetch(`/api/files?folderId=${folderId}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setUploadedFiles(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch uploaded files",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
+    e.preventDefault();
+    setIsDragging(true);
+  };
 
   const handleDragLeave = () => {
-    setIsDragging(false)
-  }
+    setIsDragging(false);
+  };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-
-    const droppedFiles = Array.from(e.dataTransfer.files)
-    addFiles(droppedFiles)
-  }
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    handleFiles(droppedFiles);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files)
-      addFiles(selectedFiles)
+      const selectedFiles = Array.from(e.target.files);
+      handleFiles(selectedFiles);
     }
-  }
+  };
 
-  const addFiles = (newFiles: File[]) => {
-    // Filter for PDFs and text files
-    const validFiles = newFiles.filter((file) => file.type === "application/pdf" || file.type === "text/plain")
-
-    setFiles((prev) => [...prev, ...validFiles])
-
-    // Initialize progress for each file
-    validFiles.forEach((file) => {
-      setUploadProgress((prev) => ({
+  const handleFiles = async (files: File[]) => {
+    for (const file of files) {
+      // Add file to uploads state
+      setUploads((prev) => ({
         ...prev,
-        [file.name]: 0,
-      }))
+        [file.name]: {
+          file,
+          progress: 0,
+          status: "uploading",
+        },
+      }));
 
-      // Simulate upload progress
-      simulateUpload(file.name)
-    })
-  }
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folderId", folderId as string);
 
-  const simulateUpload = (fileName: string) => {
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += Math.random() * 10
-      if (progress >= 100) {
-        progress = 100
-        clearInterval(interval)
+        const response = await fetch("/api/files", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+
+        setUploads((prev) => ({
+          ...prev,
+          [file.name]: {
+            ...prev[file.name],
+            progress: 100,
+            status: "complete",
+          },
+        }));
+
+        // Update uploaded files list
+        setUploadedFiles((prev) => [data, ...prev]);
+
+        toast({
+          title: "Success",
+          description: `${file.name} uploaded successfully`,
+        });
+      } catch (error) {
+        setUploads((prev) => ({
+          ...prev,
+          [file.name]: {
+            ...prev[file.name],
+            status: "error",
+          },
+        }));
+
+        toast({
+          title: "Error",
+          description: `Failed to upload ${file.name}`,
+          variant: "destructive",
+        });
       }
-
-      setUploadProgress((prev) => ({
-        ...prev,
-        [fileName]: progress,
-      }))
-    }, 300)
-  }
-
-  const removeFile = (fileName: string) => {
-    setFiles((prev) => prev.filter((file) => file.name !== fileName))
-    setUploadProgress((prev) => {
-      const newProgress = { ...prev }
-      delete newProgress[fileName]
-      return newProgress
-    })
-  }
+    }
+  };
 
   return (
     <div className="container mx-auto p-6">
-      <div className="flex items-center mb-6">
-        <SidebarTrigger className="mr-2" />
-        <h1 className="text-3xl font-bold">Upload Notes</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <SidebarTrigger className="mr-2" />
+          <div>
+            <h1 className="text-3xl font-bold">Upload Notes</h1>
+            {folder && (
+              <p className="text-muted-foreground mt-1">
+                Folder: {folder.name}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div
@@ -101,51 +188,85 @@ export default function UploadPage() {
             <Upload className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-medium">Drag and drop your files here</h3>
-            <p className="text-sm text-muted-foreground mt-1">Support for PDF and text files</p>
+            <h3 className="text-lg font-medium">
+              Drag and drop your files here
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Support for PDF and text files
+            </p>
           </div>
           <div className="mt-2">
-            <label htmlFor="file-upload">
-              <Button as="span">Select Files</Button>
-              <input
-                id="file-upload"
-                type="file"
-                className="sr-only"
-                multiple
-                accept=".pdf,.txt"
-                onChange={handleFileChange}
-              />
-            </label>
+            <Button asChild>
+              <label htmlFor="file-upload">
+                Select Files
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="sr-only"
+                  multiple
+                  accept=".pdf,.txt,.doc,.docx"
+                  onChange={handleFileChange}
+                />
+              </label>
+            </Button>
           </div>
         </div>
       </div>
 
-      {files.length > 0 && (
+      {/* Active Uploads */}
+      {Object.entries(uploads).length > 0 && (
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Uploaded Files</h2>
+          <h2 className="text-xl font-semibold mb-4">Uploading</h2>
           <div className="space-y-4">
-            {files.map((file) => (
-              <Card key={file.name}>
+            {Object.entries(uploads).map(([fileName, upload]) => (
+              <Card key={fileName}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <File className="h-5 w-5 text-primary" />
+                      <FileIcon className="h-5 w-5 text-primary" />
                       <div>
-                        <p className="font-medium">{file.name}</p>
-                        <p className="text-sm text-muted-foreground">{(file.size / 1024).toFixed(2)} KB</p>
+                        <p className="font-medium">{fileName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(upload.file.size / 1024).toFixed(2)} KB
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {uploadProgress[file.name] === 100 ? (
+                      {upload.status === "complete" ? (
                         <Check className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <Button variant="ghost" size="icon" onClick={() => removeFile(file.name)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
+                      ) : upload.status === "error" ? (
+                        <X className="h-5 w-5 text-red-500" />
+                      ) : null}
                     </div>
                   </div>
-                  <Progress value={uploadProgress[file.name]} className="mt-2" />
+                  <Progress value={upload.progress} className="mt-2" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Uploaded Files */}
+      {uploadedFiles.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4">Uploaded Files</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {uploadedFiles.map((file) => (
+              <Card key={file._id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <FileIcon className="h-5 w-5 text-primary" />
+                    <div className="flex-1">
+                      <p className="font-medium">{file.displayName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(file.size / 1024).toFixed(2)} KB
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(file.uploadedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -153,6 +274,5 @@ export default function UploadPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
-

@@ -1,63 +1,173 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { FileText, RefreshCw, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 
-const sampleSummaries = [
-  {
-    id: 1,
-    title: "Chapter 1: Introduction",
-    content: "This chapter introduces the main concepts and themes of the book.",
-  },
-  {
-    id: 2,
-    title: "Chapter 2: The Problem",
-    content: "This chapter delves into the core problem that the book aims to address.",
-  },
-  {
-    id: 3,
-    title: "Chapter 3: Proposed Solution",
-    content: "This chapter outlines the proposed solution to the problem discussed in the previous chapter.",
-  },
-]
+interface Chapter {
+  title: string;
+  content: string;
+}
 
-export default function SummaryPage({ params }: { params: { folderId: string } }) {
-  const [expandedChapters, setExpandedChapters] = useState<number[]>([])
+interface Summary {
+  _id: string;
+  fileName: string;
+  chapters: Chapter[];
+  createdAt: string;
+}
 
-  const toggleChapter = (id: number) => {
-    setExpandedChapters((prev) => (prev.includes(id) ? prev.filter((chapterId) => chapterId !== id) : [...prev, id]))
-  }
+export default function SummaryPage() {
+  const { folderId } = useParams();
+  const { toast } = useToast();
+  const [summaries, setSummaries] = useState<Summary[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    fetchSummaries();
+  }, [folderId]);
+
+  const fetchSummaries = async () => {
+    try {
+      const response = await fetch(`/api/summaries?folderId=${folderId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch summaries");
+      }
+
+      const data: Summary[] = await response.json();
+      if (data.length === 0) {
+        throw new Error("No new files to summarize");
+      }
+
+      // Ensure correct structure
+      const processedSummaries = data.map((summary) => ({
+        ...summary,
+        chapters: Array.isArray(summary.chapters) ? summary.chapters : [],
+      }));
+
+      setSummaries(processedSummaries);
+    } catch (error) {
+      console.error("Error fetching summaries:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch summaries",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const generateSummaries = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await fetch("/api/summaries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderId }),
+      });
+
+      const data: Summary[] = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      if (data.message === "No new files to summarize") {
+        toast({
+          title: "Info",
+          description: "No new files to summarize",
+        });
+      } else {
+        setSummaries((prev) => [...prev, ...data]);
+        toast({
+          title: "Success",
+          description: "Summaries generated successfully",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate summaries",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Chapter Summaries</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <SidebarTrigger className="mr-2" />
+          <h1 className="text-3xl font-bold">Document Summaries</h1>
+        </div>
+        <Button
+          onClick={generateSummaries}
+          disabled={isGenerating}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${isGenerating ? "animate-spin" : ""}`}
+          />
+          {isGenerating ? "Generating..." : "Generate Summaries"}
+        </Button>
+      </div>
 
-      <div className="space-y-4">
-        {sampleSummaries.map((chapter) => (
-          <Card key={chapter.id} className="overflow-hidden">
-            <CardHeader className="p-4 cursor-pointer" onClick={() => toggleChapter(chapter.id)}>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{chapter.title}</CardTitle>
-                <Button variant="ghost" size="icon">
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${
-                      expandedChapters.includes(chapter.id) ? "rotate-180" : ""
-                    }`}
-                  />
-                </Button>
-              </div>
-            </CardHeader>
-            {expandedChapters.includes(chapter.id) && (
-              <CardContent className="p-4 pt-0 border-t">
-                <p className="text-muted-foreground">{chapter.content}</p>
+      <div className="grid gap-6">
+        {summaries.length > 0 ? (
+          summaries.map((summary) => (
+            <Card key={summary._id}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  {summary.fileName}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Generated on{" "}
+                  {new Date(summary.createdAt).toLocaleDateString()}
+                </p>
+              </CardHeader>
+              <CardContent>
+                {summary.chapters.length > 0 ? (
+                  summary.chapters.map((chapter, index) => (
+                    <Collapsible key={index}>
+                      <CollapsibleTrigger className="w-full flex justify-between items-center text-lg font-semibold">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          {chapter.title}
+                        </div>
+                        <ChevronDown className="h-5 w-5 transition-transform" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="text-muted-foreground whitespace-pre-wrap">
+                          {chapter.content}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">
+                    No chapters available.
+                  </p>
+                )}
               </CardContent>
-            )}
-          </Card>
-        ))}
+            </Card>
+          ))
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">
+              No summaries generated yet. Click the button above to generate
+              summaries.
+            </p>
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
-

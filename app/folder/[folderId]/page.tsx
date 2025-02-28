@@ -1,10 +1,28 @@
+"use client"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useEffect, useState } from "react";
 
 export default function FolderPage({ params }: { params: { folderId: string } }) {
+  const [folderName, setFolderName] = useState("");
+
   // In a real application, you would fetch the folder data based on the folderId
-  const folderName = "Sample Folder"
+  useEffect(() => {
+    const fetchFolder = async () => {
+      try {
+        const response = await fetch(`/api/folders/${params.folderId}`);
+        console.log(response)
+        if (!response.ok) throw new Error("Failed to fetch folder");
+        const folderData = await response.json();
+        setFolderName(folderData.name); // Assuming the API returns an object with a 'name' property
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchFolder();
+  }, [params.folderId]);
 
   return (
     <div className="container mx-auto p-6">

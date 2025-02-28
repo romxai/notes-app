@@ -1,5 +1,21 @@
 import mongoose from "mongoose";
 
+const messageSchema = new mongoose.Schema({
+  role: {
+    type: String,
+    required: true,
+    enum: ["user", "assistant"],
+  },
+  content: {
+    type: String,
+    required: true,
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
 const instanceSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -25,6 +41,7 @@ const instanceSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     required: true,
   },
+  messages: [messageSchema],
   createdAt: {
     type: Date,
     default: Date.now,
