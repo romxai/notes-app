@@ -102,7 +102,7 @@ export default function SummaryPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="flex flex-col min-h-screen w-full p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
           <SidebarTrigger className="mr-2" />
@@ -120,7 +120,7 @@ export default function SummaryPage() {
         </Button>
       </div>
 
-      <div className="grid gap-6">
+      <div className="flex-1 overflow-auto grid gap-6">
         {summaries.length > 0 ? (
           <Accordion type="multiple" className="w-full space-y-4">
             {summaries.map((summary) => (

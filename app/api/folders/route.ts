@@ -5,34 +5,121 @@ import dbConnect from "@/lib/db";
 import Folder from "@/lib/models/folder";
 import { withAuth } from "@/lib/auth";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { folderId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    console.log("Fetching folder details for:", params.folderId);
+    console.log("Fetching all folders");
     const payload = await withAuth(request);
     if (payload instanceof NextResponse) {
       return payload;
     }
 
     await dbConnect();
-    const folder = await Folder.findOne({
-      _id: params.folderId,
+    const folders = await Folder.find({ userId: payload.userId }).sort({
+      createdAt: -1,
+    });
+
+    console.log(`Found ${folders.length} folders`);
+    return NextResponse.json(folders);
+  } catch (error) {
+    console.error("Error fetching folders:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch folders" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const payload = await withAuth(request);
+    if (payload instanceof NextResponse) {
+      return payload;
+    }
+
+    await dbConnect();
+    const data = await request.json();
+
+    const folder = await Folder.create({
+      ...data,
+      userId: payload.userId,
+    });
+
+    return NextResponse.json(folder);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to create folder" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const payload = await withAuth(request);
+    if (payload instanceof NextResponse) {
+      return payload;
+    }
+
+    await dbConnect();
+    const data = await request.json();
+    const { id, ...updateData } = data;
+
+    const folder = await Folder.findOneAndUpdate(
+      { _id: id, userId: payload.userId },
+      updateData,
+      { new: true }
+    );
+
+    if (!folder) {
+      return NextResponse.json(
+        { error: "Folder not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(folder);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to update folder" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const payload = await withAuth(request);
+    if (payload instanceof NextResponse) {
+      return payload;
+    }
+
+    await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Folder ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const folder = await Folder.findOneAndDelete({
+      _id: id,
       userId: payload.userId,
     });
 
     if (!folder) {
-      console.error("Folder not found:", params.folderId);
-      return NextResponse.json({ error: "Folder not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Folder not found" },
+        { status: 404 }
+      );
     }
 
-    console.log("Found folder:", folder);
-    return NextResponse.json(folder);
+    return NextResponse.json({ message: "Folder deleted successfully" });
   } catch (error) {
-    console.error("Error fetching folder:", error);
     return NextResponse.json(
-      { error: "Failed to fetch folder" },
+      { error: "Failed to delete folder" },
       { status: 500 }
     );
   }

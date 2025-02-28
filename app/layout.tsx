@@ -23,8 +23,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SidebarProvider>
-            <div className="flex min-h-screen">
-              <main className="flex-1">{children}</main>
+            <div className="flex flex-col min-h-screen w-full">
+              <div className="flex flex-1">
+                <main className="flex-1 w-full">{children}</main>
+              </div>
             </div>
           </SidebarProvider>
         </ThemeProvider>
