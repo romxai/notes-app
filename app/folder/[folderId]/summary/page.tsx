@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { FileText, RefreshCw, ChevronDown } from "lucide-react";
+import { FileText, RefreshCw, ChevronDown, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface Chapter {
   title: string;
@@ -25,11 +26,18 @@ interface Summary {
   createdAt: string;
 }
 
+interface ApiResponse {
+  error?: string;
+  message?: string;
+  data?: Summary[];
+}
+
 export default function SummaryPage() {
   const { folderId } = useParams();
   const { toast } = useToast();
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [expandedSummaries, setExpandedSummaries] = useState<string[]>([]);
 
   useEffect(() => {
     fetchSummaries();
@@ -38,23 +46,13 @@ export default function SummaryPage() {
   const fetchSummaries = async () => {
     try {
       const response = await fetch(`/api/summaries?folderId=${folderId}`);
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch summaries");
+        throw new Error(data.error || "Failed to fetch summaries");
       }
 
-      const data: Summary[] = await response.json();
-      if (data.length === 0) {
-        throw new Error("No new files to summarize");
-      }
-
-      // Ensure correct structure
-      const processedSummaries = data.map((summary) => ({
-        ...summary,
-        chapters: Array.isArray(summary.chapters) ? summary.chapters : [],
-      }));
-
-      setSummaries(processedSummaries);
+      setSummaries(data);
     } catch (error) {
       console.error("Error fetching summaries:", error);
       toast({
@@ -74,16 +72,19 @@ export default function SummaryPage() {
         body: JSON.stringify({ folderId }),
       });
 
-      const data: Summary[] = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      const data: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate summaries");
+      }
 
       if (data.message === "No new files to summarize") {
         toast({
           title: "Info",
           description: "No new files to summarize",
         });
-      } else {
-        setSummaries((prev) => [...prev, ...data]);
+      } else if (data.data) {
+        setSummaries((prev) => [...prev, ...(data.data || [])]);
         toast({
           title: "Success",
           description: "Summaries generated successfully",
@@ -121,49 +122,69 @@ export default function SummaryPage() {
 
       <div className="grid gap-6">
         {summaries.length > 0 ? (
-          summaries.map((summary) => (
-            <Card key={summary._id}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  {summary.fileName}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Generated on{" "}
-                  {new Date(summary.createdAt).toLocaleDateString()}
-                </p>
-              </CardHeader>
-              <CardContent>
-                {summary.chapters.length > 0 ? (
-                  summary.chapters.map((chapter, index) => (
-                    <Collapsible key={index}>
-                      <CollapsibleTrigger className="w-full flex justify-between items-center text-lg font-semibold">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          {chapter.title}
+          <Accordion type="multiple" className="w-full space-y-4">
+            {summaries.map((summary) => (
+              <AccordionItem
+                key={summary._id}
+                value={summary._id}
+                className="border rounded-lg px-4"
+              >
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-primary" />
+                    <div className="text-left">
+                      <h3 className="text-lg font-semibold">
+                        {summary.fileName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {summary.chapters.length} chapters • Generated{" "}
+                        {new Date(summary.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="pt-2 pb-4">
+                    <Accordion type="single" collapsible className="w-full">
+                      {Array.isArray(summary.chapters) &&
+                      summary.chapters.some((ch) => ch.title && ch.content) ? (
+                        summary.chapters.map((chapter, index) => (
+                          <AccordionItem
+                            key={`${summary._id}-${index}`}
+                            value={`chapter-${index}`}
+                            className="border-b last:border-0"
+                          >
+                            <AccordionTrigger className="py-3 hover:no-underline">
+                              <div className="flex items-center gap-2">
+                                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">
+                                  {chapter.title}
+                                </span>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="py-3 px-4 text-sm text-muted-foreground bg-muted/50 rounded-md">
+                                {chapter.content}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))
+                      ) : (
+                        <div className="py-3 px-4 text-sm text-muted-foreground">
+                          No valid chapters found for this document.
                         </div>
-                        <ChevronDown className="h-5 w-5 transition-transform" />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent className="text-muted-foreground whitespace-pre-wrap">
-                          {chapter.content}
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground">
-                    No chapters available.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))
+                      )}
+                    </Accordion>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
               No summaries generated yet. Click the button above to generate
-              summaries.
+              summaries for your documents.
             </p>
           </div>
         )}

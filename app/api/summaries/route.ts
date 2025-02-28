@@ -10,14 +10,23 @@ import { withAuth } from "@/lib/auth";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!);
 
+interface Chapter {
+  title: string;
+  content: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const payload = await withAuth(request);
-    if (payload instanceof NextResponse) return payload;
+    if (payload instanceof NextResponse) {
+      return payload;
+    }
 
     await dbConnect();
+
+    // Extract folderId from query parameters
     const { searchParams } = new URL(request.url);
-    const folderId = searchParams.get("folderId");
+    const folderId = searchParams.get("folderId"); // Ensure folderId is defined
 
     if (!folderId) {
       return NextResponse.json(
@@ -27,7 +36,34 @@ export async function GET(request: NextRequest) {
     }
 
     const summaries = await Summary.find({ folderId }).sort({ createdAt: -1 });
-    return NextResponse.json(summaries);
+
+    // Transform any summaries that might be in the old format
+    const transformedSummaries = summaries.map((summary) => {
+      if (
+        summary.chapters.length === 1 &&
+        summary.chapters[0].title === "```json"
+      ) {
+        try {
+          // Extract JSON from the content
+          const jsonMatch = summary.chapters[0].content.match(/\[([\s\S]*)\]/);
+          if (jsonMatch) {
+            const parsedChapters: Chapter[] = JSON.parse(`[${jsonMatch[1]}]`);
+            return {
+              ...summary.toObject(),
+              chapters: parsedChapters.map((chapter: Chapter) => ({
+                title: String(chapter.title || "").trim(),
+                content: String(chapter.content || "").trim(),
+              })),
+            };
+          }
+        } catch (error) {
+          console.error("Error transforming summary:", error);
+        }
+      }
+      return summary;
+    });
+
+    return NextResponse.json(transformedSummaries);
   } catch (error) {
     console.error("Error fetching summaries:", error);
     return NextResponse.json(
@@ -75,49 +111,55 @@ export async function POST(request: NextRequest) {
             mimeType: file.mimeType,
           },
         },
-        `Please analyze this document and provide a structured chapter-wise summary. Ensure the response is always in the following JSON format:
+        `Please analyze this document and provide a structured chapter-wise summary. Format the response as a valid JSON array of chapters, where each chapter has a title and content. Example:
 [
   {
-    "title": "<Chapter Title>",
-    "content": "<Concise but comprehensive summary of the chapter>"
+    "title": "Chapter 1: Introduction",
+    "content": "Summary of introduction..."
+  },
+  {
+    "title": "Chapter 2: Main Concepts",
+    "content": "Summary of main concepts..."
   }
-]
-
-Guidelines:
-- Each chapter or major section should have a unique "title" corresponding to the topic.
-- The "content" should provide a well-structured, concise, but informative summary of that chapter.
-- Do not include additional metadata or formatting outside of the JSON structure.
-- Ensure the output remains consistent across all generations.`,
+]`,
       ]);
 
       const response = await result.response;
       const text = response.text();
 
-      
-      // Parse the response into chapters (this is a simple example, adjust based on actual response format)
-      const chapters = text.split("\n\n").map((chapter) => {
-        const [title, ...content] = chapter.split("\n");
-        return {
-          title: title.trim(),
-          content: content.join("\n").trim(),
-        };
-      });
+      let chapters: Chapter[];
+      try {
+        // Parse the JSON response
+        const jsonMatch = text.match(/```json\s*(\[[\s\S]*?\])\s*```/);
+        const jsonString = jsonMatch ? jsonMatch[1] : text;
 
-      const parseChapters = (chapters) => {
-        return chapters.flatMap((chapter) => {
-          try {
-            const parsedContent = JSON.parse(chapter.content); // Try parsing the JSON string
-            if (Array.isArray(parsedContent)) {
-              return parsedContent; // If it's an array, return it as the new chapters list
-            }
-          } catch (error) {
-            console.warn("Failed to parse chapter content as JSON:", error);
-          }
-          return chapter; // If parsing fails, return the original chapter
-        });
-      };
+        const parsedData = JSON.parse(jsonString);
 
-      // Create summary document
+        // Ensure we have an array of properly structured chapters
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          chapters = parsedData.map((chapter) => ({
+            title: String(chapter.title || "").trim(),
+            content: String(chapter.content || "").trim(),
+          }));
+        } else {
+          throw new Error("Invalid response format");
+        }
+      } catch (error) {
+        console.error("Failed to parse JSON response:", error);
+        // Fallback parsing for non-JSON responses
+        const sections = text.split(/(?=Chapter|Section|\d+\.)/g);
+        chapters = sections
+          .filter((section) => section.trim())
+          .map((section) => {
+            const lines = section.split("\n");
+            return {
+              title: lines[0].trim(),
+              content: lines.slice(1).join("\n").trim(),
+            };
+          });
+      }
+
+      // Create summary document with parsed chapters
       const summary = await Summary.create({
         fileId: file._id,
         folderId,
@@ -128,7 +170,7 @@ Guidelines:
       summaries.push(summary);
     }
 
-    return NextResponse.json(summaries);
+    return NextResponse.json({ data: summaries });
   } catch (error) {
     console.error("Error generating summaries:", error);
     return NextResponse.json(
