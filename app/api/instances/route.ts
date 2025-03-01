@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
       };
     } else if (data.type === "quiz") {
       content = {
-        questions: [],
+        fileId: data.fileId,
+        status: "pending",
         score: null,
       };
     } else if (data.type === "flashcard") {
