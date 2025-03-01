@@ -74,7 +74,7 @@ export function FileSelectDialog({
     if (selectedFiles.size === files.length) {
       setSelectedFiles(new Set());
     } else {
-      setSelectedFiles(new Set(files.map(file => file._id)));
+      setSelectedFiles(new Set(files.map((file) => file._id)));
     }
   };
 
@@ -91,7 +91,9 @@ export function FileSelectDialog({
         {loading ? (
           <div className="py-4">Loading files...</div>
         ) : files.length === 0 ? (
-          <div className="py-4">No files available. Please upload files first.</div>
+          <div className="py-4">
+            No files available. Please upload files first.
+          </div>
         ) : (
           <>
             <div className="mb-4">
@@ -101,7 +103,9 @@ export function FileSelectDialog({
                 onClick={toggleAll}
                 className="w-full"
               >
-                {selectedFiles.size === files.length ? "Deselect All" : "Select All"}
+                {selectedFiles.size === files.length
+                  ? "Deselect All"
+                  : "Select All"}
               </Button>
             </div>
             <ScrollArea className="h-[300px] pr-4">

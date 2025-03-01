@@ -75,16 +75,19 @@ export async function POST(request: NextRequest) {
       console.error("No files found for IDs:", fileIds);
       return NextResponse.json({ error: "Files not found" }, { status: 404 });
     }
-    console.log("Found files:", files.map(f => f.displayName));
+    console.log(
+      "Found files:",
+      files.map((f) => f.displayName)
+    );
 
     // Generate quiz for each file
     const allQuestions: QuizQuestion[] = [];
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-    
+
     for (const file of files) {
       console.log(`Processing file: ${file.displayName}`);
       const fileData = await fileManager.getFile(file.name);
-      
+
       // Generate quiz using Gemini
       const result = await model.generateContent([
         {
@@ -121,26 +124,29 @@ export async function POST(request: NextRequest) {
 
       const response = await result.response;
       const text = response.text();
-      
+
       try {
         const jsonMatch = text.match(/```json\s*(\{[\s\S]*?\})\s*```/);
         const jsonString = jsonMatch ? jsonMatch[1] : text;
         const fileQuizData = JSON.parse(jsonString) as FileQuizData;
-        
+
         // Add source file ID to each question
-        const questionsWithSource = fileQuizData.questions.map(q => ({
+        const questionsWithSource = fileQuizData.questions.map((q) => ({
           ...q,
-          sourceFileId: file._id
+          sourceFileId: file._id,
         }));
         allQuestions.push(...questionsWithSource);
       } catch (error) {
-        console.error(`Failed to parse quiz data for file ${file.displayName}:`, error);
+        console.error(
+          `Failed to parse quiz data for file ${file.displayName}:`,
+          error
+        );
       }
     }
 
     // Create combined quiz
     const quizData = {
-      title: `Quiz on ${files.length} Document${files.length > 1 ? 's' : ''}`,
+      title: `Quiz on ${files.length} Document${files.length > 1 ? "s" : ""}`,
       questions: allQuestions.map((q, idx) => ({ ...q, id: idx + 1 })),
       fileIds: fileIds,
       fileId: fileIds[0], // Set the first file as the primary fileId for backward compatibility
@@ -157,7 +163,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error generating quiz:", error);
     return NextResponse.json(
-      { error: "Failed to generate quiz", details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: "Failed to generate quiz",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

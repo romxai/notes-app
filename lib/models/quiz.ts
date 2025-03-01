@@ -12,8 +12,8 @@ const questionSchema = new mongoose.Schema({
   correctAnswer: String,
   sourceFileId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "File"
-  }
+    ref: "File",
+  },
 });
 
 const quizSchema = new mongoose.Schema({
@@ -22,14 +22,18 @@ const quizSchema = new mongoose.Schema({
     required: true,
   },
   questions: [questionSchema],
-  fileId: {  // Keep this for backward compatibility
+  fileId: {
+    // Keep this for backward compatibility
     type: mongoose.Schema.Types.ObjectId,
     ref: "File",
   },
-  fileIds: [{  // New field for multiple files
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "File",
-  }],
+  fileIds: [
+    {
+      // New field for multiple files
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "File",
+    },
+  ],
   folderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Folder",
@@ -47,7 +51,7 @@ const quizSchema = new mongoose.Schema({
 });
 
 // Add a pre-save middleware to ensure fileId is set from fileIds[0]
-quizSchema.pre('save', function(next) {
+quizSchema.pre("save", function (next) {
   if (this.fileIds && this.fileIds.length > 0) {
     this.fileId = this.fileIds[0];
   }
