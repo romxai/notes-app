@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { MagicCard } from "@/components/magicui/magic-card";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -79,97 +80,105 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-background">
       <div className="w-full max-w-sm">
-        <Card className="bg-foreground">
-          <CardHeader>
-            <CardTitle>Create an account</CardTitle>
-            <CardDescription>
-              Enter your details below to create your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <div className="flex flex-col gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    placeholder="johndoe"
-                    value={formData.username}
-                    onChange={(e) =>
-                      setFormData({ ...formData, username: e.target.value })
-                    }
-                    required
-                  />
+        <MagicCard
+          className="rounded-xl"
+          gradientFrom="hsl(var(--accent))"
+          gradientTo="hsl(var(--accent))"
+          gradientSize={400}
+          gradientOpacity={0.2}
+        >
+          <Card className="border-none bg-transparent">
+            <CardHeader>
+              <CardTitle>Create an account</CardTitle>
+              <CardDescription>
+                Enter your details below to create your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit}>
+                <div className="flex flex-col gap-6">
+                  <div className="grid gap-3">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      placeholder="johndoe"
+                      value={formData.username}
+                      onChange={(e) =>
+                        setFormData({ ...formData, username: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-3">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="m@example.com"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-3">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-3">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          confirmPassword: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      type="submit"
+                      className="w-full bg-accent hover:bg-accent/90"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        "Creating account..."
+                      ) : (
+                        <>
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Sign Up
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Button
-                    type="submit"
-                    className="w-full bg-accent hover:bg-accent/90"
-                    disabled={isLoading}
+                <div className="mt-4 text-center text-sm">
+                  Already have an account?{" "}
+                  <Link
+                    href="/login"
+                    className="text-accent hover:underline underline-offset-4"
                   >
-                    {isLoading ? (
-                      "Creating account..."
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Sign Up
-                      </>
-                    )}
-                  </Button>
+                    Login
+                  </Link>
                 </div>
-              </div>
-              <div className="mt-4 text-center text-sm">
-                Already have an account?{" "}
-                <Link
-                  href="/login"
-                  className="text-accent hover:underline underline-offset-4"
-                >
-                  Login
-                </Link>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        </MagicCard>
       </div>
     </div>
   );
