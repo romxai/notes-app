@@ -382,9 +382,7 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
                     <Command className="size-4" />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">
-                      Study Assistant
-                    </span>
+                    <span className="truncate font-medium">beacon.ai</span>
                     <span className="truncate text-xs">
                       AI-Powered Learning
                     </span>
@@ -397,9 +395,7 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
         <SidebarContent>
           <NavFolders />
         </SidebarContent>
-        <SidebarFooter>
-          {userInfo && <NavUser user={userInfo} />}
-        </SidebarFooter>
+        <SidebarFooter>{userInfo && <NavUser user={userInfo} />}</SidebarFooter>
       </Sidebar>
       <FileSelectDialog
         open={fileSelectOpen}

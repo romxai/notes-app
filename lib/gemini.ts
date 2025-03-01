@@ -45,7 +45,7 @@ export type Message = {
   attachments?: { type: "document" | "image"; url: string; name: string }[];
 };
 
-const INITIAL_CONTEXT = `You are a helpful study assistant. Your goal is to help students understand concepts, explain topics clearly, and provide relevant examples. Be concise but thorough in your explanations. Format your responses in markdown for better readability.`;
+const INITIAL_CONTEXT = `You are a helpful Study Assistant. Your goal is to help students understand concepts, explain topics clearly, and provide relevant examples. Be concise but thorough in your explanations. Format your responses in markdown for better readability.`;
 
 // Helper function to map our roles to Gemini roles
 function mapRole(role: "user" | "assistant"): "user" | "model" {

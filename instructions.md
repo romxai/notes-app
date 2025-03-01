@@ -1,10 +1,10 @@
-# MERN Stack Study Assistant App - Project Requirement Document (PRD)
+# MERN Stack beacon.ai App - Project Requirement Document (PRD)
 
 ## 1. Project Overview
 
 ### 1.1 Introduction
 
-The Study Assistant App is designed to help users efficiently process, organize, and understand study materials through an interactive chat interface. Users can upload documents (PDFs, DOCX, TXT, images) that the AI agent processes to generate well-formatted notes, flowcharts, and pictographs. The system leverages the Gemini API (free tier) for AI responses, uses Tesseract.js for OCR, and integrates web scraping via free tiers of Tavily or BraveSearch for sourcing additional information. The app is built on the MERN stack using TypeScript and is fully deployable on Vercel with auto-deployment from GitHub.
+The beacon.ai App is designed to help users efficiently process, organize, and understand study materials through an interactive chat interface. Users can upload documents (PDFs, DOCX, TXT, images) that the AI agent processes to generate well-formatted notes, flowcharts, and pictographs. The system leverages the Gemini API (free tier) for AI responses, uses Tesseract.js for OCR, and integrates web scraping via free tiers of Tavily or BraveSearch for sourcing additional information. The app is built on the MERN stack using TypeScript and is fully deployable on Vercel with auto-deployment from GitHub.
 
 ### 1.2 Objectives
 

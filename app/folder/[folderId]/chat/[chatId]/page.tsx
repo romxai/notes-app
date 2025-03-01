@@ -178,9 +178,7 @@ export default function ChatPage() {
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border shadow-md">
         <div className="max-w-4xl mx-auto py-4 px-4 md:px-8">
-          <h1 className="text-xl font-semibold text-primary">
-            Study Assistant Chat
-          </h1>
+          <h1 className="text-xl font-semibold text-primary">Study Assistant Chat</h1>
         </div>
       </div>
 
@@ -193,7 +191,7 @@ export default function ChatPage() {
                 <GraduationCap className="h-8 w-8 text-accent" />
               </div>
               <h1 className="text-2xl font-semibold text-primary mb-2">
-                Welcome to Study Assistant
+                Welcome to beacon.ai
               </h1>
               <p className="text-muted-foreground max-w-md">
                 Ask me anything! I'm here to help you with your studies.
@@ -227,7 +225,7 @@ export default function ChatPage() {
                   <div className="flex-1 flex flex-col gap-1.5">
                     <div className="flex items-center gap-3">
                       <span className="text-primary font-medium">
-                        {message.role === "user" ? "You" : "Study Assistant"}
+                        {message.role === "user" ? "You" : "beacon.ai"}
                       </span>
                       <span className="text-muted-foreground text-sm">
                         {message.timestamp &&
