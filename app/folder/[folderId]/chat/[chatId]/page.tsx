@@ -174,12 +174,25 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-[calc(100vh-4rem)] relative bg-background">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border shadow-md">
+        <div className="max-w-4xl mx-auto py-4 px-4 md:px-8">
+          <h1 className="text-xl font-semibold text-primary">
+            Study Assistant Chat
+          </h1>
+        </div>
+      </div>
+
+      {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto py-6 px-4 md:px-8">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center px-4">
-              <h1 className="text-2xl font-semibold text-foreground mb-2">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+              <div className="bg-accent/10 p-4 rounded-full w-fit mx-auto mb-4">
+                <GraduationCap className="h-8 w-8 text-accent" />
+              </div>
+              <h1 className="text-2xl font-semibold text-primary mb-2">
                 Welcome to Study Assistant
               </h1>
               <p className="text-muted-foreground max-w-md">
@@ -187,17 +200,20 @@ export default function ChatPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-6 pb-20">
               {messages.map((message, index) => (
-                <div key={index} className="flex gap-3">
+                <div
+                  key={index}
+                  className="flex gap-3 animate-in fade-in-0 slide-in-from-bottom-2"
+                >
                   <Avatar className="h-10 w-10 shrink-0">
                     <AvatarFallback
                       className="flex items-center justify-center h-full w-full text-primary-foreground"
                       style={{
                         background:
                           message.role === "user"
-                            ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))"
-                            : "linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--primary)))",
+                            ? "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--gradend)))"
+                            : "linear-gradient(135deg, hsl(var(--accent)), hsl(var(--gradend)))",
                       }}
                     >
                       {message.role === "user" ? (
@@ -208,9 +224,9 @@ export default function ChatPage() {
                     </AvatarFallback>
                   </Avatar>
 
-                  <div className="flex-1 flex flex-col gap-1">
+                  <div className="flex-1 flex flex-col gap-1.5">
                     <div className="flex items-center gap-3">
-                      <span className="text-foreground font-semibold">
+                      <span className="text-primary font-medium">
                         {message.role === "user" ? "You" : "Study Assistant"}
                       </span>
                       <span className="text-muted-foreground text-sm">
@@ -222,7 +238,7 @@ export default function ChatPage() {
                       </span>
                     </div>
 
-                    <div className="p-3 bg-muted rounded-lg">
+                    <div className="p-4 bg-card text-card-foreground rounded-xl shadow-sm">
                       <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
@@ -233,7 +249,7 @@ export default function ChatPage() {
                       </div>
 
                       {message.attachments?.map((attachment, idx) => (
-                        <div key={idx} className="mt-3">
+                        <div key={idx} className="mt-4">
                           {attachment.type === "image" ? (
                             <div className="relative rounded-lg overflow-hidden border border-border">
                               <img
@@ -243,7 +259,7 @@ export default function ChatPage() {
                               />
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2 bg-background p-2 rounded-lg border border-border">
+                            <div className="flex items-center gap-2 bg-background/50 p-3 rounded-lg border border-border">
                               <PaperclipIcon className="h-4 w-4 text-muted-foreground" />
                               <a
                                 href={attachment.url}
@@ -267,21 +283,22 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="border-t border-border bg-background">
+      {/* Sticky Input Section */}
+      <div className="sticky bottom-0 z-10 border-t border-border bg-background/80 backdrop-blur-sm shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         <div className="max-w-4xl mx-auto p-4">
           {uploadProgress && (
-            <div className="mb-4 p-4 bg-muted rounded-lg">
+            <div className="mb-4 p-4 bg-card rounded-lg shadow-sm">
               <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-primary">
                   {uploadProgress.fileName}
                 </span>
                 <span className="text-sm text-muted-foreground">
                   {Math.round(uploadProgress.progress)}%
                 </span>
               </div>
-              <div className="w-full bg-secondary rounded-full h-2">
+              <div className="w-full bg-muted rounded-full h-2">
                 <div
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  className="bg-accent h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress.progress}%` }}
                 />
               </div>
@@ -307,7 +324,7 @@ export default function ChatPage() {
                 }
               }}
               placeholder="Type a message..."
-              className="min-h-[60px] w-full resize-none rounded-lg border-border bg-muted p-4 pr-20 focus-visible:ring-1 focus-visible:ring-primary md:min-h-[80px]"
+              className="min-h-[60px] w-full resize-none rounded-xl border-border bg-card text-card-foreground p-4 pr-20 focus-visible:ring-1 focus-visible:ring-accent md:min-h-[80px]"
               disabled={isLoading}
             />
             <div className="absolute bottom-4 right-4 flex items-center gap-2">
@@ -340,7 +357,7 @@ export default function ChatPage() {
                 onClick={handleSubmit}
                 disabled={!input.trim() || isLoading}
                 size="icon"
-                className="bg-primary hover:bg-primary/90"
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
               >
                 <Send className="h-4 w-4" />
               </Button>

@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
+import { MagicCard } from "@/components/magicui/magic-card";
+import { cn } from "@/lib/utils";
 
 interface FileUpload {
   file: File;
@@ -160,119 +162,147 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <SidebarTrigger className="mr-2" />
-          <div>
-            <h1 className="text-3xl font-bold">Upload Notes</h1>
-            {folder && (
-              <p className="text-muted-foreground mt-1">
-                Folder: {folder.name}
-              </p>
-            )}
+    <div className="flex h-screen flex-col overflow-hidden">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 w-full items-center">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-xl font-bold pl-8 text-primary">
+                Upload Notes
+              </h1>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div
-        className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-          isDragging ? "border-primary bg-primary/5" : "border-border"
-        }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <div className="flex flex-col items-center justify-center gap-4">
-          <div className="rounded-full bg-primary/10 p-4">
-            <Upload className="h-8 w-8 text-primary" />
-          </div>
-          <div>
-            <h3 className="text-lg font-medium">
-              Drag and drop your files here
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Support for PDF and text files
-            </p>
-          </div>
-          <div className="mt-2">
-            <Button asChild>
-              <label htmlFor="file-upload">
-                Select Files
-                <input
-                  id="file-upload"
-                  type="file"
-                  className="sr-only"
-                  multiple
-                  accept=".pdf,.txt,.doc,.docx"
-                  onChange={handleFileChange}
-                />
-              </label>
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="container max-w-screen-2xl space-y-8 p-6">
+          {/* Upload Area */}
+          <MagicCard className="relative overflow-hidden">
+            <div
+              className={cn(
+                "flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-12 text-center transition-colors",
+                isDragging
+                  ? "border-primary bg-primary/5"
+                  : "border-muted hover:border-primary/50"
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="rounded-full bg-primary/10 p-4">
+                <Upload className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-primary">
+                  Drag and drop your files here
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Support for PDF and text files
+                </p>
+              </div>
+              <div className="mt-2">
+                <Button className="bg-accent" variant="outline" asChild>
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    Select Files
+                    <input
+                      id="file-upload"
+                      type="file"
+                      className="sr-only"
+                      multiple
+                      accept=".pdf,.txt,.doc,.docx"
+                      onChange={handleFileChange}
+                    />
+                  </label>
+                </Button>
+              </div>
+            </div>
+          </MagicCard>
 
-      {/* Active Uploads */}
-      {Object.entries(uploads).length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Uploading</h2>
-          <div className="space-y-4">
-            {Object.entries(uploads).map(([fileName, upload]) => (
-              <Card key={fileName}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileIcon className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="font-medium">{fileName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(upload.file.size / 1024).toFixed(2)} KB
-                        </p>
+          {/* Active Uploads */}
+          {Object.entries(uploads).length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Uploading</h2>
+              <div className="grid gap-4">
+                {Object.entries(uploads).map(([fileName, upload]) => (
+                  <Card key={fileName} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="rounded-full bg-primary/10 p-2">
+                            <FileIcon className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{fileName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {(upload.file.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {upload.status === "complete" ? (
+                            <div className="rounded-full bg-green-500/10 p-1">
+                              <Check className="h-4 w-4 text-green-500" />
+                            </div>
+                          ) : upload.status === "error" ? (
+                            <div className="rounded-full bg-destructive/10 p-1">
+                              <X className="h-4 w-4 text-destructive" />
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {upload.status === "complete" ? (
-                        <Check className="h-5 w-5 text-green-500" />
-                      ) : upload.status === "error" ? (
-                        <X className="h-5 w-5 text-red-500" />
-                      ) : null}
-                    </div>
-                  </div>
-                  <Progress value={upload.progress} className="mt-2" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+                      <Progress
+                        value={upload.progress}
+                        className={cn(
+                          "mt-3",
+                          upload.status === "complete" &&
+                            "[&>div]:bg-green-500",
+                          upload.status === "error" && "[&>div]:bg-destructive"
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Uploaded Files */}
-      {uploadedFiles.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Uploaded Files</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {uploadedFiles.map((file) => (
-              <Card key={file._id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <FileIcon className="h-5 w-5 text-primary" />
-                    <div className="flex-1">
-                      <p className="font-medium">{file.displayName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(file.size / 1024).toFixed(2)} KB
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(file.uploadedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* Uploaded Files */}
+          {uploadedFiles.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-primary">
+                Uploaded Files
+              </h2>
+              <div className="grid rounded-lg gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {uploadedFiles.map((file) => (
+                  <MagicCard key={file._id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-full bg-primary/10 p-2 mt-1">
+                          <FileIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate text-primary">
+                            {file.displayName}
+                          </p>
+                          <p className="text-sm text-muted">
+                            {(file.size / 1024).toFixed(2)} KB
+                          </p>
+                          <p className="text-xs text-muted">
+                            {new Date(file.uploadedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </MagicCard>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

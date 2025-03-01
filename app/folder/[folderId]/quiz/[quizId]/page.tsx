@@ -167,10 +167,18 @@ export default function QuizPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center mb-6">
-        <SidebarTrigger className="mr-2" />
-        <h1 className="text-3xl font-bold">Quiz</h1>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border shadow-md -mx-6 px-6 py-4">
+        <div className="flex items-center gap-4">
+          <SidebarTrigger />
+          <div>
+            <h1 className="text-2xl font-semibold text-primary">
+              {quiz.title}
+            </h1>
+            <p className="text-sm text-muted-foreground">Test your knowledge</p>
+          </div>
+        </div>
       </div>
 
       {!showResults ? (
@@ -179,44 +187,36 @@ export default function QuizPage() {
             <span className="text-sm text-muted-foreground">
               Question {currentQuestionIndex + 1} of {totalQuestions}
             </span>
-            <span className="text-sm font-medium">
+            <span className="text-sm font-medium text-primary">
               {Object.keys(selectedAnswers).length} answered
             </span>
           </div>
 
-          <Card>
+          <Card className="border-border shadow-sm">
             <CardHeader>
-              <div className="flex items-center">
-                {currentQuestionIndex > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleBack}
-                    className="mr-4"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                )}
-                <CardTitle>{currentQuestion.question}</CardTitle>
-              </div>
+              <CardTitle className="text-primary">
+                {currentQuestion.question}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <RadioGroup
                 value={selectedAnswers[currentQuestion.id]}
                 onValueChange={handleAnswerSelect}
+                className="space-y-4"
               >
                 {currentQuestion.options.map((option) => (
                   <div
                     key={option.id}
-                    className="flex items-center space-x-2 mb-3"
+                    className="flex items-center space-x-3 relative"
                   >
                     <RadioGroupItem
                       value={option.id}
                       id={`option-${option.id}`}
+                      className="border-accent text-accent"
                     />
                     <Label
                       htmlFor={`option-${option.id}`}
-                      className="cursor-pointer"
+                      className="text-card-foreground cursor-pointer flex-1 p-3 rounded-lg hover:bg-accent/5 transition-colors"
                     >
                       {option.text}
                     </Label>
@@ -224,9 +224,21 @@ export default function QuizPage() {
                 ))}
               </RadioGroup>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <div></div>
-              <Button onClick={nextQuestion} disabled={!isAnswered}>
+            <CardFooter className="flex justify-between border-t border-border pt-6">
+              <Button
+                variant="outline"
+                onClick={handleBack}
+                disabled={currentQuestionIndex === 0}
+                className="text-primary"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous Question
+              </Button>
+              <Button
+                onClick={nextQuestion}
+                disabled={!isAnswered}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+              >
                 {currentQuestionIndex === totalQuestions - 1
                   ? "Finish Quiz"
                   : "Next Question"}
@@ -237,16 +249,18 @@ export default function QuizPage() {
         </div>
       ) : (
         <div className="max-w-2xl mx-auto">
-          <Card>
+          <Card className="border-border shadow-sm">
             <CardHeader>
-              <CardTitle>Quiz Results</CardTitle>
+              <CardTitle className="text-primary">Quiz Results</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-center mb-6">
-                <div className="text-5xl font-bold mb-2">
+            <CardContent className="space-y-8">
+              <div className="text-center">
+                <div className="text-5xl font-bold mb-2 text-primary">
                   {score}/{totalQuestions}
                 </div>
-                <div className="text-xl">{percentage}% Correct</div>
+                <div className="text-xl text-muted-foreground">
+                  {percentage}% Correct
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -255,36 +269,49 @@ export default function QuizPage() {
                   const isCorrect = userAnswer === question.correctAnswer;
 
                   return (
-                    <div key={question.id} className="border rounded-lg p-4">
-                      <div className="flex items-start gap-2">
+                    <div
+                      key={question.id}
+                      className={`border rounded-xl p-4 ${
+                        isCorrect ? "border-green-500" : "border-red-500"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
                         <div
-                          className={`rounded-full p-1 ${
-                            isCorrect ? "bg-green-100" : "bg-red-100"
+                          className={`rounded-full p-1.5 shrink-0 ${
+                            isCorrect ? "bg-green-500/10" : "bg-red-500/10"
                           }`}
                         >
                           {isCorrect ? (
-                            <Check className="h-4 w-4 text-green-600" />
+                            <Check className={`h-4 w-4 text-green-500`} />
                           ) : (
-                            <X className="h-4 w-4 text-red-600" />
+                            <X className={`h-4 w-4 text-red-500`} />
                           )}
                         </div>
-                        <div>
-                          <p className="font-medium">
+                        <div className="space-y-1.5">
+                          <p className="font-medium text-primary">
                             {index + 1}. {question.question}
                           </p>
-                          <p className="text-sm mt-1">
+                          <p className="text-sm text-muted-foreground">
                             Your answer:{" "}
-                            {question.options.find((o) => o.id === userAnswer)
-                              ?.text || "Not answered"}
+                            <span
+                              className={
+                                isCorrect ? "text-green-500" : "text-red-500"
+                              }
+                            >
+                              {question.options.find((o) => o.id === userAnswer)
+                                ?.text || "Not answered"}
+                            </span>
                           </p>
                           {!isCorrect && (
-                            <p className="text-sm text-green-600 mt-1">
+                            <p className="text-sm">
                               Correct answer:{" "}
-                              {
-                                question.options.find(
-                                  (o) => o.id === question.correctAnswer
-                                )?.text
-                              }
+                              <span className="text-green-500">
+                                {
+                                  question.options.find(
+                                    (o) => o.id === question.correctAnswer
+                                  )?.text
+                                }
+                              </span>
                             </p>
                           )}
                         </div>
@@ -295,7 +322,10 @@ export default function QuizPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={resetQuiz} className="w-full">
+              <Button
+                onClick={resetQuiz}
+                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+              >
                 Retake Quiz
               </Button>
             </CardFooter>
