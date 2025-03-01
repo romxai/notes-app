@@ -3,6 +3,7 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from "@google/generative-ai";
+import { GoogleAIFileManager } from "@google/generative-ai/server";
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error("Missing Gemini API key");
@@ -54,7 +55,8 @@ function mapRole(role: "user" | "assistant"): "user" | "model" {
 export async function generateResponse(
   prompt: string,
   history: Message[] = [],
-  attachment?: { url: string; type: "document" | "image"; name: string }
+  attachment?: { url: string; type: "document" | "image"; name: string },
+  folderFiles: any[] = []
 ) {
   try {
     console.log("Generating response with:", {
@@ -63,10 +65,10 @@ export async function generateResponse(
       attachment: attachment
         ? `${attachment.type} - ${attachment.name}`
         : "none",
+      folderFilesCount: folderFiles.length,
     });
 
-    // Choose the appropriate model based on whether we have an attachment
-    const modelName = attachment ? "gemini-1.5-flash" : "gemini-1.5-flash";
+    const modelName = "gemini-1.5-pro";
     console.log(`Using model: ${modelName}`);
 
     const model = genAI.getGenerativeModel({
@@ -75,44 +77,54 @@ export async function generateResponse(
       safetySettings,
     });
 
-    let contentParts: any[] = [];
+    // Prepare content parts array
+    let contentParts = [];
 
-    // Process attachment if present
-    if (attachment) {
-      console.log(
-        `Processing attachment: ${attachment.name} (${attachment.type})`
-      );
-      try {
-        const fileResponse = await fetch(attachment.url);
-        console.log("File response:", fileResponse);
-        const fileBuffer = await fileResponse.arrayBuffer();
-        console.log("File buffer:", fileBuffer);
-        const base64Data = Buffer.from(fileBuffer).toString("base64");
-        console.log("Base64 data:", base64Data);
-        const mimeType = getMimeType(attachment.name, attachment.type);
-        console.log("Mime type:", mimeType);
-
-        console.log("Successfully processed attachment:", {
-          mimeType,
-          dataLength: base64Data.length,
-        });
+    // First, add all file data parts
+    if (folderFiles.length > 0) {
+      // Add each file's data as a separate part
+      for (const file of folderFiles) {
+        if (file.fileData?.uri) {
           contentParts.push({
-            inlineData: {
-              data: base64Data,
-              mimeType,
+            fileData: {
+              fileUri: file.fileData.uri,
+              mimeType: file.mimeType,
             },
           });
-
-      } catch (fetchError) {
-        console.error("Error fetching attachment:", fetchError);
-        throw new Error("Failed to process the file. Please try again.");
+        }
       }
     }
 
-    // Add the prompt or use default if not provided
-    const finalPrompt =
-      prompt || getDefaultPrompt(attachment?.type, attachment?.name);
-    contentParts.push({ text: finalPrompt });
+    // Add current attachment if present
+    if (attachment) {
+      try {
+        const fileResponse = await fetch(attachment.url);
+        const fileBuffer = await fileResponse.arrayBuffer();
+        const base64Data = Buffer.from(fileBuffer).toString("base64");
+        const mimeType = getMimeType(attachment.name, attachment.type);
+
+        contentParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType,
+          },
+        });
+      } catch (fetchError) {
+        console.error("Error fetching attachment:", fetchError);
+      }
+    }
+
+    // Add file list context and prompt as the final text part
+    const fileListContext =
+      folderFiles.length > 0
+        ? `Available files:\n${folderFiles
+            .map((file) => `- ${file.displayName}`)
+            .join("\n")}\n\n`
+        : "";
+
+    contentParts.push({
+      text: `${fileListContext}${prompt}`,
+    });
 
     // Map history to Gemini's expected format
     const mappedHistory = history.map((msg) => ({
@@ -137,7 +149,11 @@ export async function generateResponse(
       safetySettings,
     });
 
-    console.log("Sending message to Gemini...");
+    console.log("Sending message to Gemini with content parts:", {
+      numParts: contentParts.length,
+      types: contentParts.map((part) => Object.keys(part)[0]),
+    });
+
     const result = await chat.sendMessage(contentParts);
     const response = await result.response;
     const text = response.text();
@@ -153,11 +169,7 @@ export async function generateResponse(
 
     return text;
   } catch (error: any) {
-    console.error("Error generating response:", {
-      error,
-      message: error.message,
-      stack: error.stack,
-    });
+    console.error("Error generating response:", error);
     throw error;
   }
 }
