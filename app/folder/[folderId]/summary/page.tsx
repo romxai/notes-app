@@ -102,76 +102,78 @@ export default function SummaryPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-full p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto p-6 space-y-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center">
-          <SidebarTrigger className="mr-2" />
-          <h1 className="text-3xl font-bold">Document Summaries</h1>
+          <h1 className="text-4xl font-bold text-primary">
+            Document Summaries
+          </h1>
         </div>
         <Button
           onClick={generateSummaries}
           disabled={isGenerating}
-          className="flex items-center gap-2"
+          className="bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto"
         >
           <RefreshCw
-            className={`h-4 w-4 ${isGenerating ? "animate-spin" : ""}`}
+            className={`h-4 w-4 mr-2 ${isGenerating ? "animate-spin" : ""}`}
           />
           {isGenerating ? "Generating..." : "Generate Summaries"}
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto grid gap-6">
+      <div className="grid gap-6">
         {summaries.length > 0 ? (
-          <Accordion type="multiple" className="w-full space-y-4">
+          <Accordion type="multiple" className="w-full space-y-6">
             {summaries.map((summary) => (
               <AccordionItem
                 key={summary._id}
                 value={summary._id}
-                className="border rounded-lg px-4"
+                className="border bg-card text-card-foreground rounded-xl px-6 shadow-sm"
               >
-                <AccordionTrigger className="hover:no-underline py-4">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <div className="text-left">
-                      <h3 className="text-lg font-semibold">
+                <AccordionTrigger className="hover:no-underline py-6">
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="bg-accent/10 p-2.5 rounded-lg">
+                      <FileText className="h-5 w-5 text-accent" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <h3 className="text-lg font-semibold text-primary">
                         {summary.fileName}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {summary.chapters.length} chapters • Generated{" "}
                         {new Date(summary.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent>
-                  <div className="pt-2 pb-4">
+                <AccordionContent className="pt-2 pb-6">
+                  <div className="space-y-4">
                     <Accordion type="single" collapsible className="w-full">
                       {Array.isArray(summary.chapters) &&
                       summary.chapters.some((ch) => ch.title && ch.content) ? (
                         summary.chapters.map((chapter, index) => (
                           <AccordionItem
-                            key={`${summary._id}-${index}`}
-                            value={`chapter-${index}`}
-                            className="border-b last:border-0"
+                            key={index}
+                            value={`${summary._id}-${index}`}
+                            className="border-none bg-background/50 rounded-lg px-4 mt-2"
                           >
-                            <AccordionTrigger className="py-3 hover:no-underline">
-                              <div className="flex items-center gap-2">
-                                <BookOpen className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm font-medium">
+                            <AccordionTrigger className="py-4 hover:no-underline">
+                              <div className="flex items-center gap-3">
+                                <span className="text-primary font-medium">
                                   {chapter.title}
                                 </span>
                               </div>
                             </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="py-3 px-4 text-sm text-muted-foreground bg-muted/50 rounded-md">
+                            <AccordionContent className="pt-2 pb-4 text-primary/90">
+                              <div className="prose prose-sm dark:prose-invert max-w-none">
                                 {chapter.content}
                               </div>
                             </AccordionContent>
                           </AccordionItem>
                         ))
                       ) : (
-                        <div className="py-3 px-4 text-sm text-muted-foreground">
-                          No valid chapters found for this document.
+                        <div className="text-muted-foreground py-4">
+                          No chapters available
                         </div>
                       )}
                     </Accordion>
@@ -182,9 +184,14 @@ export default function SummaryPage() {
           </Accordion>
         ) : (
           <div className="text-center py-12">
+            <div className="bg-accent/10 p-4 rounded-full w-fit mx-auto mb-4">
+              <FileText className="h-8 w-8 text-accent" />
+            </div>
+            <h3 className="text-xl font-semibold text-primary mb-2">
+              No summaries yet
+            </h3>
             <p className="text-muted-foreground">
-              No summaries generated yet. Click the button above to generate
-              summaries for your documents.
+              Generate summaries to see them here
             </p>
           </div>
         )}

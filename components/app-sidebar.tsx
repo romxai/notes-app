@@ -15,16 +15,24 @@ import {
   Trash2,
   LogOut,
   User,
+  BookOpen,
+  Command,
+  FileText,
+  Folder,
+  LifeBuoy,
+  Send,
+  Settings,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { NavMain } from "@/components/nav-main";
+import { NavFolders } from "@/components/nav-folders";
+import { NavUser } from "@/components/nav-user";
 
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -62,29 +70,16 @@ type InstanceGroup = {
   items: Instance[];
 };
 
-type UserInfo = {
-  username: string;
-  email: string;
-};
-
 interface Folder {
   _id: string;
   name: string;
   description: string;
 }
 
-const navItems = [
-  {
-    title: "Upload",
-    icon: FileUp,
-    href: "/upload",
-  },
-  {
-    title: "Summary",
-    icon: ScrollText,
-    href: "/summary",
-  },
-];
+interface UserInfo {
+  username: string;
+  email: string;
+}
 
 export function AppSidebar({ folderId }: { folderId?: string }) {
   const pathname = usePathname();
@@ -94,7 +89,7 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
   const [isCreating, setIsCreating] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
   const [selectedType, setSelectedType] = useState<string>("");
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [folder, setFolder] = useState<Folder | null>(null);
   const [fileSelectOpen, setFileSelectOpen] = useState(false);
   const [pendingQuizCreate, setPendingQuizCreate] = useState(false);
@@ -302,12 +297,11 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
     const fetchUserInfo = async () => {
       try {
         const response = await fetch("/api/auth/me");
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data);
-        }
+        if (!response.ok) throw new Error("Failed to fetch user info");
+        const data = await response.json();
+        setUserInfo(data);
       } catch (error) {
-        console.error("Failed to fetch user info:", error);
+        console.error("Error fetching user info:", error);
       }
     };
 
@@ -324,180 +318,88 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
     }
   };
 
+  const MainNavItems = [
+    {
+      title: "Files",
+      url: "/",
+      icon: FileText,
+      isActive: !folderId,
+    },
+    {
+      title: "Documentation",
+      url: "#",
+      icon: BookOpen,
+      items: [
+        {
+          title: "Getting Started",
+          url: "#",
+        },
+        {
+          title: "Tutorials",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      url: "#",
+      icon: Settings,
+      items: [
+        {
+          title: "General",
+          url: "#",
+        },
+        {
+          title: "Security",
+          url: "#",
+        },
+      ],
+    },
+  ];
+
+  const secondaryNavItems = [
+    {
+      title: "Support",
+      url: "#",
+      icon: LifeBuoy,
+    },
+    {
+      title: "Feedback",
+      url: "#",
+      icon: Send,
+    },
+  ];
+
   return (
     <>
-      <Sidebar>
+      <Sidebar variant="inset">
         <SidebarHeader>
-          <div className="flex items-center gap-2 px-4 py-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-              <BookText className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <div className="font-semibold">
-              <h2 className="text-sm font-semibold">STUDY +</h2>
-            </div>
-          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <a href="/">
+                  <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                    <Command className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">
+                      Study Assistant
+                    </span>
+                    <span className="truncate text-xs">
+                      AI-Powered Learning
+                    </span>
+                  </div>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-            <SidebarGroupLabel>
-              {" "}
-              {folder ? (
-                <h2 className="text-sm font-semibold">{folder.name}</h2>
-              ) : (
-                <div className="h-5 w-24 animate-pulse rounded bg-muted"></div>
-              )}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/">
-                      <Home className="h-4 w-4" />
-                      <span>Home</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                {folderId &&
-                  navItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={
-                          pathname === `/folder/${folderId}${item.href}`
-                        }
-                      >
-                        <Link href={`/folder/${folderId}${item.href}`}>
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                {folderId &&
-                  instanceGroups.map((group) => (
-                    <Collapsible key={group.title}>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="w-full justify-between">
-                          <div className="flex items-center">
-                            <group.icon className="h-4 w-4 mr-2" />
-                            <span>{group.title}</span>
-                          </div>
-                          <ChevronDown className="h-4 w-4" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="pl-6 py-2 space-y-2">
-                          {group.items.map((instance) => (
-                            <div
-                              key={instance._id}
-                              className="flex items-center justify-between group"
-                            >
-                              <Link
-                                href={`/folder/${folderId}/${group.type}/${instance._id}`}
-                                className="flex-1 py-1 px-2 rounded-md hover:bg-accent hover:text-accent-foreground"
-                              >
-                                {instance.name}
-                              </Link>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="opacity-0 group-hover:opacity-100"
-                                onClick={() => handleDeleteInstance(instance)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
-                          <Dialog
-                            open={isCreating && selectedType === group.type}
-                            onOpenChange={(open) => {
-                              if (!open) {
-                                setIsCreating(false);
-                                setSelectedType("");
-                                setNewInstanceName("");
-                              }
-                            }}
-                          >
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="w-full justify-start"
-                                onClick={() => {
-                                  setIsCreating(true);
-                                  setSelectedType(group.type);
-                                }}
-                              >
-                                <Plus className="h-4 w-4 mr-2" />
-                                New {group.title}
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>
-                                  Create New {group.title}
-                                </DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4 py-4">
-                                <Input
-                                  value={newInstanceName}
-                                  onChange={(e) =>
-                                    setNewInstanceName(e.target.value)
-                                  }
-                                  placeholder={`Enter ${group.title.toLowerCase()} name`}
-                                />
-                                <Button
-                                  onClick={() =>
-                                    handleCreateInstance(group.type)
-                                  }
-                                  disabled={!newInstanceName}
-                                  className="w-full"
-                                >
-                                  Create
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <NavFolders />
         </SidebarContent>
-        <SidebarRail />
-        <div className="mt-auto border-t">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <ThemeToggle />
-              {user && (
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
-                    <User className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <div className="font-medium">{user.username}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {user.email}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            {user && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            )}
-          </div>
-        </div>
+        <SidebarFooter>
+          {userInfo && <NavUser user={userInfo} />}
+        </SidebarFooter>
       </Sidebar>
       <FileSelectDialog
         open={fileSelectOpen}

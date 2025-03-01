@@ -83,9 +83,9 @@ export default function SignupPage() {
         <MagicCard
           className="rounded-xl"
           gradientFrom="hsl(var(--accent))"
-          gradientTo="hsl(var(--accent))"
+          gradientTo="hsl(var(--gradend))"
           gradientSize={400}
-          gradientOpacity={0.2}
+          gradientOpacity={0.5}
         >
           <Card className="border-none bg-transparent">
             <CardHeader>

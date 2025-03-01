@@ -62,14 +62,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-[#121212]">
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-background">
       <div className="w-full max-w-sm">
         <MagicCard
           className="rounded-xl"
           gradientFrom="hsl(var(--accent))"
-          gradientTo="hsl(var(--accent))"
+          gradientTo="hsl(var(--gradend))"
           gradientSize={400}
-          gradientOpacity={0.2}
+          gradientOpacity={0.5}
         >
           <Card className="border-none bg-transparent">
             <CardHeader>
