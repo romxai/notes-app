@@ -11,9 +11,18 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, FolderOpen, FolderPlus } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { MagicCard } from "@/components/magicui/magic-card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 type Folder = {
   _id: string;
@@ -23,7 +32,7 @@ type Folder = {
 
 export function FolderList() {
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -84,7 +93,7 @@ export function FolderList() {
 
   // Edit folder
   const handleEdit = (folder: Folder) => {
-    setEditingId(folder._id);
+    setEditingFolder(folder);
     setEditName(folder.name);
     setEditDescription(folder.description);
   };
@@ -104,7 +113,7 @@ export function FolderList() {
       if (!response.ok) throw new Error(data.error);
 
       setFolders(folders.map((folder) => (folder._id === id ? data : folder)));
-      setEditingId(null);
+      setEditingFolder(null);
       toast({
         title: "Success",
         description: "Folder updated successfully",
@@ -151,8 +160,13 @@ export function FolderList() {
 
   return (
     <div className="space-y-4">
-      <Button onClick={() => setIsCreating(true)} className="mb-4">
-        <Plus className="h-4 w-4 mr-2" />
+      <Button
+        onClick={() => setIsCreating(true)}
+        className="mb-4"
+        variant="outline"
+        className="bg-accent text-accent-foreground hover:bg-accent/90"
+      >
+        <FolderPlus className="mr-2 h-4 w-4" />
         New Folder
       </Button>
 
@@ -187,62 +201,99 @@ export function FolderList() {
         )}
 
         {folders.map((folder) => (
-          <Card key={folder._id}>
-            {editingId === folder._id ? (
-              <CardContent className="pt-6">
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="mb-2"
-                  placeholder="Folder name"
-                />
-                <Input
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  className="mb-4"
-                  placeholder="Description"
-                />
-                <Button
-                  onClick={() => handleSave(folder._id)}
-                  className="mr-2"
-                  disabled={!editName}
-                >
-                  Save
-                </Button>
-                <Button variant="outline" onClick={() => setEditingId(null)}>
-                  Cancel
-                </Button>
-              </CardContent>
-            ) : (
-              <>
-                <CardHeader>
-                  <CardTitle>{folder.name}</CardTitle>
-                  <CardDescription>{folder.description}</CardDescription>
-                </CardHeader>
-                <CardFooter className="justify-between">
+          <MagicCard
+            key={folder._id}
+            className="rounded-xl"
+            gradientFrom="hsl(var(--accent))"
+            gradientTo="hsl(var(--gradend))"
+            gradientSize={400}
+            gradientOpacity={0.5}
+          >
+            <div className="relative p-6 space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-primary mb-2">
+                    {folder.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {folder.description}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
                     onClick={() => handleEdit(folder)}
+                    className="h-8 w-8 text-muted-foreground hover:text-primary"
                   >
                     <Pencil className="h-4 w-4" />
+                    <span className="sr-only">Edit</span>
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
                     onClick={() => handleDelete(folder._id)}
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Delete</span>
                   </Button>
-                  <Button asChild>
-                    <Link href={`/folder/${folder._id}`}>Open</Link>
-                  </Button>
-                </CardFooter>
-              </>
-            )}
-          </Card>
+                </div>
+              </div>
+              <Button
+                asChild
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                <Link href={`/folder/${folder._id}`}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Open Folder
+                </Link>
+              </Button>
+            </div>
+          </MagicCard>
         ))}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={editingFolder !== null}
+        onOpenChange={() => setEditingFolder(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Folder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingFolder(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => editingFolder && handleSave(editingFolder._id)}
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
