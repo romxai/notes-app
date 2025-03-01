@@ -46,6 +46,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FileSelectDialog } from "@/components/file-select-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type Instance = {
   _id: string;
@@ -468,19 +469,24 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
         </SidebarContent>
         <SidebarRail />
         <div className="mt-auto border-t">
-          {user && (
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
-                  <User className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <div>
-                  <div className="font-medium">{user.username}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {user.email}
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <ThemeToggle />
+              {user && (
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
+                    <User className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{user.username}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {user.email}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
+            {user && (
               <Button
                 variant="outline"
                 className="w-full"
@@ -489,8 +495,8 @@ export function AppSidebar({ folderId }: { folderId?: string }) {
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </Sidebar>
       <FileSelectDialog
