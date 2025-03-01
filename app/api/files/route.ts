@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create temporary directory if it doesn't exist
-    const tempDir = path.join(process.cwd(), "tmp");
+    const tempDir = path.join(process.cwd(), "/tmp");
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir);
     }
