@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const folderId = formData.get("folderId") as string;
 
     if (!file || !folderId) {
-      console.error("Missing required fields:", {
+      console.error("Missing required fields in form data:", {
         file: !!file,
         folderId: !!folderId,
       });
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create temporary directory if it doesn't exist
-    const tempDir = path.join(process.cwd(), "/tmp");
+    const tempDir = "/tmp";
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir);
     }
@@ -104,7 +104,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Failed to upload file", details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: "Failed to upload file",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
