@@ -9,6 +9,19 @@ import { GoogleAIFileManager } from "@google/generative-ai/server";
 
 const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!);
 
+// Set timeout for the API request
+const TIMEOUT = 55000; // 55 seconds (slightly less than Vercel's 60s limit)
+
+// Helper function to handle timeouts
+function timeoutPromise(promise: Promise<any>, ms: number) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timeout")), ms)
+    ),
+  ]);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await withAuth(request);
@@ -24,7 +37,7 @@ export async function POST(request: NextRequest) {
       _id: instanceId,
       userId: payload.userId,
       type: "chat",
-    });
+    }).lean();
 
     if (!instance) {
       return NextResponse.json(
@@ -33,30 +46,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch all files from the folder
-    const folderFiles = await File.find({ folderId: instance.folderId });
+    // Fetch all files from the folder (with lean for better performance)
+    const folderFiles = await File.find({ folderId: instance.folderId }).lean();
     console.log(`Found ${folderFiles.length} files in folder`);
 
-    // Get file contents from Google AI File Manager
-    const filesWithContent = await Promise.all(
-      folderFiles.map(async (file) => {
-        try {
-          // We only need the file URI and mime type for Gemini
-          return {
-            ...file.toObject(),
-            fileData: {
-              uri: file.fileUri,
-              mimeType: file.mimeType,
-            },
-          };
-        } catch (error) {
-          console.error(`Error preparing file data for ${file.name}:`, error);
-          return file.toObject();
-        }
-      })
-    );
+    // Prepare files data more efficiently
+    const filesWithContent = folderFiles.map((file) => ({
+      ...file,
+      fileData: {
+        uri: file.fileUri,
+        mimeType: file.mimeType,
+      },
+    }));
 
-    // Add user message with attachment if present
+    // Add user message
     const userMessage = {
       role: "user" as const,
       content: message,
@@ -65,12 +68,15 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      // Get AI response with conversation history and folder files
-      const aiResponse = await generateResponse(
-        message,
-        instance.messages || [],
-        attachment,
-        filesWithContent
+      // Get AI response with timeout
+      const aiResponse = await timeoutPromise(
+        generateResponse(
+          message,
+          instance.messages || [],
+          attachment,
+          filesWithContent
+        ),
+        TIMEOUT
       );
 
       // Add AI message
@@ -81,25 +87,38 @@ export async function POST(request: NextRequest) {
       };
 
       // Update instance with new messages and content
-      instance.messages = [
+      const updatedMessages = [
         ...(instance.messages || []),
         userMessage,
         aiMessage,
       ];
-      instance.content = {
-        lastMessage: aiMessage.content,
-        messageCount: instance.messages.length,
-      };
-      await instance.save();
+      await Instance.findByIdAndUpdate(
+        instanceId,
+        {
+          $set: {
+            messages: updatedMessages,
+            content: {
+              lastMessage: aiMessage.content,
+              messageCount: updatedMessages.length,
+            },
+          },
+        },
+        { new: true }
+      );
 
       return NextResponse.json({
         messages: [userMessage, aiMessage],
       });
     } catch (error) {
       console.error("Error generating response:", error);
+      const errorMessage =
+        error.message === "Request timeout"
+          ? "The request took too long to process. Please try again with a shorter message."
+          : "Failed to generate AI response";
+
       return NextResponse.json(
-        { error: "Failed to generate AI response" },
-        { status: 500 }
+        { error: errorMessage },
+        { status: error.message === "Request timeout" ? 408 : 500 }
       );
     }
   } catch (error) {
@@ -129,12 +148,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Find the chat instance
+    // Use lean() for better performance
     const instance = await Instance.findOne({
       _id: instanceId,
       userId: payload.userId,
       type: "chat",
-    });
+    }).lean();
 
     if (!instance) {
       return NextResponse.json(
